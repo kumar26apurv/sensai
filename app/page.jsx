@@ -1,4 +1,5 @@
-// import Image from "next/image";
+"use client";
+
 import HeroSection from "@/components/hero";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
