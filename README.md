@@ -1,6 +1,6 @@
 # 🤖 AI Career Coach – Full Stack Career Guidance Platform
 
-A modern **AI-powered Career Coaching Web Application** built using **React 19 + Next.js 15** and powered by **Gemini AI**. This platform helps users improve their career prospects with AI-driven insights, mock interviews, resume building, and performance tracking — making it a standout project for your portfolio and resume.
+A modern **AI-powered Career Coaching Web Application** built using **React 19 + Next.js 15** and powered by **GROQ AI**. This platform helps users improve their career prospects with AI-driven insights, mock interviews, resume building, and performance tracking — making it a standout project for your portfolio and resume.
 
 ---
 
@@ -38,7 +38,7 @@ This project demonstrates real-world integration of AI, authentication, database
 * Prisma ORM
 * Clerk Authentication
 * Inngest (Background Jobs + Cron)
-* Gemini AI API
+* GROQ AI API
 
 ---
 
@@ -98,7 +98,7 @@ NEXT_PUBLIC_CLERK_SIGNUP_URL=
 NEXT_PUBLIC_CLERK_AFTER_SIGNIN_URL=
 NEXT_PUBLIC_CLERK_AFTER_SIGNUP_URL=
 DATABASE_URL=
-GEMINI_API_KEY=
+GROQ_API_KEY=
 ```
 
 ---
