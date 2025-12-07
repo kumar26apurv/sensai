@@ -11,7 +11,7 @@ The AI Career Coach is designed to guide users through every stage of their care
 ### Key Capabilities
 
 * AI-generated Industry Insights
-* Mock Interview Preparation with Gemini AI
+* Mock Interview Preparation with GROQ AI
 * Resume Builder (Markdown + PDF)
 * Cover Letter Generator
 * Interview Performance Analytics
