@@ -2,10 +2,10 @@
 
 import { db } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import Groq from "groq-sdk";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+// Initialize Groq Client
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 export async function generateQuiz() {
   const { userId } = await auth();
@@ -29,8 +29,9 @@ export async function generateQuiz() {
   }.
     
     Each question should be multiple choice with 4 options.
-    
-    Return the response in this JSON format only, no additional text:
+
+    Return ONLY valid JSON in this format (no comments, no markdown):
+
     {
       "questions": [
         {
@@ -44,11 +45,19 @@ export async function generateQuiz() {
   `;
 
   try {
-    const result = await model.generateContent(prompt);
-    const response = result.response;
-    const text = response.text();
-    const cleanedText = text.replace(/```(?:json)?\n?/g, "").trim();
-    const quiz = JSON.parse(cleanedText);
+    const completion = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 2000,
+      temperature: 0.7,
+    });
+
+    const text = completion.choices[0].message.content;
+
+    // Remove markdown fences if any
+    const cleaned = text.replace(/```json|```/g, "").trim();
+
+    const quiz = JSON.parse(cleaned);
 
     return quiz.questions;
   } catch (error) {
@@ -75,11 +84,10 @@ export async function saveQuizResult(questions, answers, score) {
     explanation: q.explanation,
   }));
 
-  // Get wrong answers
   const wrongAnswers = questionResults.filter((q) => !q.isCorrect);
 
-  // Only generate improvement tips if there are wrong answers
   let improvementTip = null;
+
   if (wrongAnswers.length > 0) {
     const wrongQuestionsText = wrongAnswers
       .map(
@@ -89,24 +97,23 @@ export async function saveQuizResult(questions, answers, score) {
       .join("\n\n");
 
     const improvementPrompt = `
-      The user got the following ${user.industry} technical interview questions wrong:
+      The user got the following ${user.industry} technical questions wrong:
 
       ${wrongQuestionsText}
 
-      Based on these mistakes, provide a concise, specific improvement tip.
-      Focus on the knowledge gaps revealed by these wrong answers.
-      Keep the response under 2 sentences and make it encouraging.
-      Don't explicitly mention the mistakes, instead focus on what to learn/practice.
+      Give a short 2-sentence improvement tip.
     `;
 
     try {
-      const tipResult = await model.generateContent(improvementPrompt);
+      const tipCompletion = await groq.chat.completions.create({
+        model: "llama-3.1-70b-versatile",
+        messages: [{ role: "user", content: improvementPrompt }],
+        max_tokens: 200,
+      });
 
-      improvementTip = tipResult.response.text().trim();
-      console.log(improvementTip);
+      improvementTip = tipCompletion.choices[0].message.content.trim();
     } catch (error) {
       console.error("Error generating improvement tip:", error);
-      // Continue without improvement tip if generation fails
     }
   }
 

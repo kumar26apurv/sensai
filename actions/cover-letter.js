@@ -2,10 +2,10 @@
 
 import { db } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import Groq from "groq-sdk";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+// Initialize Groq Client
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 export async function generateCoverLetter(data) {
   const { userId } = await auth();
@@ -22,30 +22,36 @@ export async function generateCoverLetter(data) {
     data.companyName
   }.
     
-    About the candidate:
+    Candidate Details:
     - Industry: ${user.industry}
-    - Years of Experience: ${user.experience}
+    - Experience: ${user.experience} years
     - Skills: ${user.skills?.join(", ")}
-    - Professional Background: ${user.bio}
+    - Background: ${user.bio}
     
     Job Description:
     ${data.jobDescription}
-    
+
     Requirements:
-    1. Use a professional, enthusiastic tone
-    2. Highlight relevant skills and experience
-    3. Show understanding of the company's needs
-    4. Keep it concise (max 400 words)
-    5. Use proper business letter formatting in markdown
-    6. Include specific examples of achievements
-    7. Relate candidate's background to job requirements
-    
-    Format the letter in markdown.
+    1. Tone: Professional + enthusiastic
+    2. Highlight relevant experience & skills
+    3. Explain how the candidate fits the company's needs
+    4. Max length: 400 words
+    5. Use business letter formatting **in markdown**
+    6. Include specific achievements/examples
+    7. Match candidate strengths to job requirements
+
+    Write ONLY the cover letter in markdown format.
   `;
 
   try {
-    const result = await model.generateContent(prompt);
-    const content = result.response.text().trim();
+    const completion = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 1500,
+      temperature: 0.5,
+    });
+
+    const content = completion.choices[0].message.content.trim();
 
     const coverLetter = await db.coverLetter.create({
       data: {
@@ -60,7 +66,7 @@ export async function generateCoverLetter(data) {
 
     return coverLetter;
   } catch (error) {
-    console.error("Error generating cover letter:", error.message);
+    console.error("Error generating cover letter:", error);
     throw new Error("Failed to generate cover letter");
   }
 }

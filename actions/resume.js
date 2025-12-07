@@ -2,11 +2,11 @@
 
 import { db } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { revalidatePath } from "next/cache";
+import Groq from "groq-sdk";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+// Initialize Groq client
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 export async function saveResume(content) {
   const { userId } = await auth();
@@ -67,30 +67,36 @@ export async function improveWithAI({ current, type }) {
       industryInsight: true,
     },
   });
-// console.log(user)
+
   if (!user) throw new Error("User not found");
 
   const prompt = `
     As an expert resume writer, improve the following ${type} description for a ${user.industry} professional.
     Make it more impactful, quantifiable, and aligned with industry standards.
+
     Current content: "${current}"
 
     Requirements:
-    1. Use action verbs
-    2. Include metrics and results where possible
-    3. Highlight relevant technical skills
-    4. Keep it concise but detailed
-    5. Focus on achievements over responsibilities
-    6. Use industry-specific keywords
+    1. Use strong action verbs
+    2. Add measurable achievements (metrics, results)
+    3. Highlight technical & transferable skills
+    4. Keep the message concise but powerful
+    5. Focus on achievements—not responsibilities
+    6. Use keywords relevant to ${user.industry}
     
-    Format the response as a single paragraph without any additional text or explanations.
+    Output ONLY the improved paragraph. No extra explanation.
   `;
 
   try {
-    const result = await model.generateContent(prompt);
-    // console.log(result)
-    const response = result.response;
-    const improvedContent = response.text().trim();
+    const completion = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile", // Best model for rewriting & resume polishing
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 400,
+      temperature: 0.5,
+    });
+
+    const improvedContent = completion.choices[0].message.content.trim();
+
     return improvedContent;
   } catch (error) {
     console.error("Error improving content:", error);
